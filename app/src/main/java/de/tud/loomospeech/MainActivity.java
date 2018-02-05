@@ -22,6 +22,8 @@ import com.segway.robot.sdk.voice.Recognizer;
 import com.segway.robot.sdk.voice.Speaker;
 import com.segway.robot.sdk.voice.VoiceException;
 import com.segway.robot.sdk.voice.audiodata.RawDataListener;
+import com.segway.robot.sdk.voice.grammar.GrammarConstraint;
+import com.segway.robot.sdk.voice.grammar.Slot;
 import com.segway.robot.sdk.voice.recognition.WakeupListener;
 import com.segway.robot.sdk.voice.recognition.WakeupResult;
 import com.segway.robot.sdk.voice.tts.TtsListener;
@@ -31,19 +33,20 @@ import com.microsoft.cognitiveservices.speechrecognition.ISpeechRecognitionServe
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Locale;
 
-public class MainActivity extends AppCompatActivity implements ISpeechRecognitionServerEvents {
+public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
 
     private Recognizer mRecognizer;
     private Speaker mSpeaker;
-    private ServiceBinder.BindStateListener mRecognitionBindStateListener;
-    private ServiceBinder.BindStateListener mSpeakerBindStateListener;
     private WakeupListener mWakeupListener;
-    private MessageHandler mHandler;
     private RawDataListener mRawDataListener;
-    private MicrophoneRecognitionClientWithIntent m_micClient;
+    private AzureSpeechRecognition mSpeechRecognitionClient;
+
+    MessageHandler mHandler;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,11 +58,11 @@ public class MainActivity extends AppCompatActivity implements ISpeechRecognitio
         }
         switchLanguage(Locale.getDefault());
         mHandler = new MessageHandler(this);
+        mSpeechRecognitionClient = new AzureSpeechRecognition(this);
 
         initWakeUp();
-        initRecognitionClient();
         initRecognizer();
-        initSpeaker();
+//        initSpeaker();
 
     }
 
@@ -101,86 +104,109 @@ public class MainActivity extends AppCompatActivity implements ISpeechRecognitio
                 Log.d(TAG, "Recognition service onBind");
                 mHandler.sendMessage(mHandler.obtainMessage(MessageHandler.INFO, MessageHandler.APPEND, 0, getString(R.string.recognition_connected)));
 
-//                try {
-//                    //get recognition language when service bind.
-//                    mRecognitionLanguage = mRecognizer.getLanguage();
-//                    initControlGrammar();
-//                    switch (mRecognitionLanguage) {
-//                        case Languages.EN_US:
-//                            addEnglishGrammar();
-//                            break;
-//                        case Languages.ZH_CN:
-//                            addChineseGrammar();
-//                            break;
-//                    }
-//                } catch (VoiceException e) {
-//                    Log.e(TAG, "Exception: ", e);
-//                }
-//                bindRecognitionService = true;
-//                if (bindSpeakerService) {
-//                    //both speaker service and recognition service bind, enable function buttons.
-//                    enableSampleFunctionButtons();
-//                    mUnbindButton.setEnabled(true);
-//                }
-//
 //                showTip("start to wake up and recognize speech");
-//                //start the wakeup and the recognition.
-//                mStartRecognitionButton.setEnabled(false);
-//                mStopRecognitionButton.setEnabled(true);
-//                mBeamFormListenButton.setEnabled(false);
+
 //                try {
-//                    mRecognizer.startWakeupMode(mWakeupListener);
+//                    Slot moveSlot = new Slot("move");
+//                    Slot toSlot = new Slot("to");
+//                    Slot orientationSlot = new Slot("orientation");
+//                    List<Slot> controlSlotList = new LinkedList<>();
+//                    moveSlot.setOptional(false);
+//                    moveSlot.addWord("turn");
+//                    moveSlot.addWord("move");
+//                    controlSlotList.add(moveSlot);
+//
+//                    toSlot.setOptional(true);
+//                    toSlot.addWord("to the");
+//                    controlSlotList.add(toSlot);
+//
+//                    orientationSlot.setOptional(false);
+//                    orientationSlot.addWord("right");
+//                    orientationSlot.addWord("left");
+//                    controlSlotList.add(orientationSlot);
+//
+//                    GrammarConstraint mThreeSlotGrammar = new GrammarConstraint("three slots grammar", controlSlotList);
+//
+//                    String grammarJson = "{\n" +
+//                            "         \"name\": \"play_media\",\n" +
+//                            "         \"slotList\": [\n" +
+//                            "             {\n" +
+//                            "                 \"name\": \"play_cmd\",\n" +
+//                            "                 \"isOptional\": false,\n" +
+//                            "                 \"word\": [\n" +
+//                            "                     \"play\",\n" +
+//                            "                     \"close\",\n" +
+//                            "                     \"pause\"\n" +
+//                            "                 ]\n" +
+//                            "             },\n" +
+//                            "             {\n" +
+//                            "                 \"name\": \"media\",\n" +
+//                            "                 \"isOptional\": false,\n" +
+//                            "                 \"word\": [\n" +
+//                            "                     \"the music\",\n" +
+//                            "                     \"the video\"\n" +
+//                            "                 ]\n" +
+//                            "             }\n" +
+//                            "         ]\n" +
+//                            "     }";
+//                    GrammarConstraint mTwoSlotGrammar = mRecognizer.createGrammarConstraint(grammarJson);
+//                    mRecognizer.addGrammarConstraint(mTwoSlotGrammar);
+//                    mRecognizer.addGrammarConstraint(mThreeSlotGrammar);
 //                } catch (VoiceException e) {
 //                    Log.e(TAG, "Exception: ", e);
 //                }
+
+                try {
+                    mRecognizer.startWakeupMode(mWakeupListener);
+                } catch (VoiceException e) {
+                    Log.e(TAG, "Exception: ", e);
+                }
             }
 
             @Override
             public void onUnbind(String s) {
                 Log.d(TAG, "Recognition service onUnbind");
                 mHandler.sendMessage(mHandler.obtainMessage(MessageHandler.INFO, MessageHandler.APPEND, 0, getString(R.string.recognition_disconnected)));
-//                //speaker service or recognition service unbind, disable function buttons.
-//                disableSampleFunctionButtons();
-//                mUnbindButton.setEnabled(false);
-            }
-        });
-    }
-
-    protected void initSpeaker() {
-        mSpeaker = Speaker.getInstance();
-        mSpeaker.bindService(MainActivity.this, new ServiceBinder.BindStateListener() {
-            @Override
-            public void onBind() {
-                Log.d(TAG, "Speaker service onBind");
-                mHandler.sendMessage(mHandler.obtainMessage(MessageHandler.INFO, MessageHandler.APPEND, 0, getString(R.string.speaker_connected)));
-//                try {
-//                    //get speaker service language.
-//                    mSpeakerLanguage = mSpeaker.getLanguage();
-//                } catch (VoiceException e) {
-//                    Log.e(TAG, "Exception: ", e);
-//                }
-//                bindSpeakerService = true;
-//
-//                // set the volume of TTS
-//                try {
-//                    mSpeaker.setVolume(50);
-//                } catch (VoiceException e) {
-//                    e.printStackTrace();
-//                }
-//
-//                if (bindRecognitionService) {
-//                    //both speaker service and recognition service bind, enable function buttons.
-//                }
-            }
-
-            @Override
-            public void onUnbind(String s) {
-                Log.d(TAG, "Speaker service onUnbind");
                 //speaker service or recognition service unbind, disable function buttons.
-                mHandler.sendMessage(mHandler.obtainMessage(MessageHandler.INFO, MessageHandler.APPEND, 0, getString(R.string.speaker_disconnected)));
             }
         });
     }
+
+//    protected void initSpeaker() {
+//        mSpeaker = Speaker.getInstance();
+//        mSpeaker.bindService(MainActivity.this, new ServiceBinder.BindStateListener() {
+//            @Override
+//            public void onBind() {
+//                Log.d(TAG, "Speaker service onBind");
+//                mHandler.sendMessage(mHandler.obtainMessage(MessageHandler.INFO, MessageHandler.APPEND, 0, getString(R.string.speaker_connected)));
+////                try {
+////                    //get speaker service language.
+////                    mSpeakerLanguage = mSpeaker.getLanguage();
+////                } catch (VoiceException e) {
+////                    Log.e(TAG, "Exception: ", e);
+////                }
+////                bindSpeakerService = true;
+////
+////                // set the volume of TTS
+////                try {
+////                    mSpeaker.setVolume(50);
+////                } catch (VoiceException e) {
+////                    e.printStackTrace();
+////                }
+////
+////                if (bindRecognitionService) {
+////                    //both speaker service and recognition service bind, enable function buttons.
+////                }
+//            }
+//
+//            @Override
+//            public void onUnbind(String s) {
+//                Log.d(TAG, "Speaker service onUnbind");
+//                //speaker service or recognition service unbind, disable function buttons.
+//                mHandler.sendMessage(mHandler.obtainMessage(MessageHandler.INFO, MessageHandler.APPEND, 0, getString(R.string.speaker_disconnected)));
+//            }
+//        });
+//    }
 
     protected void initWakeUp() {
         mWakeupListener = new WakeupListener() {
@@ -197,7 +223,7 @@ public class MainActivity extends AppCompatActivity implements ISpeechRecognitio
                 mHandler.sendMessage(mHandler.obtainMessage(MessageHandler.INFO, MessageHandler.APPEND, 0, getString(R.string.wakeup_result) + wakeupResult.getResult() + getString(R.string.wakeup_angle) + wakeupResult.getAngle()));
 
                 //start azure recognition
-//                m_micClient.startMicAndRecognition();
+                mSpeechRecognitionClient.getRecognitionClientWithIntent().startMicAndRecognition();
             }
 
             @Override
@@ -209,14 +235,14 @@ public class MainActivity extends AppCompatActivity implements ISpeechRecognitio
         };
     }
 
-    protected void initRawData() {
-        mRawDataListener = new RawDataListener() {
-            @Override
-            public void onRawData(byte[] bytes, int i) {
-                createFile(bytes, "raw.pcm");
-            }
-        };
-    }
+//    protected void initRawData() {
+//        mRawDataListener = new RawDataListener() {
+//            @Override
+//            public void onRawData(byte[] bytes, int i) {
+//                createFile(bytes, "raw.pcm");
+//            }
+//        };
+//    }
 
 //    protected void intTTS() {
 //        mTtsListener = new TtsListener() {
@@ -245,52 +271,7 @@ public class MainActivity extends AppCompatActivity implements ISpeechRecognitio
 
     /* ----------------------------- Azure functions -------------------------------------- */
 
-    @Override
-    public void onPartialResponseReceived(String s) {
-        String msg = "Partial response:" + s;
-        Log.d(TAG, msg);
-        mHandler.sendMessage(mHandler.obtainMessage(MessageHandler.INFO, MessageHandler.APPEND, 0, msg));
-    }
 
-    @Override
-    public void onFinalResponseReceived(com.microsoft.cognitiveservices.speechrecognition.RecognitionResult recognitionResult) {
-        String msg = "Final response:" + recognitionResult.toString();
-        Log.d(TAG, msg);
-        mHandler.sendMessage(mHandler.obtainMessage(MessageHandler.INFO, MessageHandler.APPEND, 0, msg));
-    }
-
-    @Override
-    public void onIntentReceived(String s) {
-        String msg = "Intent:" + s;
-        Log.d(TAG, msg);
-        mHandler.sendMessage(mHandler.obtainMessage(MessageHandler.INFO, MessageHandler.APPEND, 0, msg));
-    }
-
-    @Override
-    public void onError(int i, String s) {
-        String msg = "Error:" + i + " - " + s;
-        Log.d(TAG, msg);
-        mHandler.sendMessage(mHandler.obtainMessage(MessageHandler.INFO, MessageHandler.APPEND, 0, msg));
-    }
-
-    @Override
-    public void onAudioEvent(boolean b) {
-
-    }
-
-    void initRecognitionClient()
-    {
-        if(m_micClient != null) {
-            return;
-        }
-        String language = getResources().getConfiguration().locale.toString();
-
-        String subscriptionKey = this.getString(R.string.subscriptionKey);
-        String luisAppID = this.getString(R.string.luisAppID);
-        String luisSubscriptionID = this.getString(R.string.luisSubscriptionID);
-
-        m_micClient = SpeechRecognitionServiceFactory.createMicrophoneClientWithIntent(this, language, this, subscriptionKey, luisAppID, luisSubscriptionID);
-    }
 
 
     /* ----------------------------- Helper functions -------------------------------------- */
