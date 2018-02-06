@@ -30,7 +30,7 @@ class AzureSpeechRecognition implements ISpeechRecognitionServerEvents {
 
     @Override
     public void onFinalResponseReceived(final RecognitionResult recognitionResult) {
-        this.recognitionClientWithIntent.endMicAndRecognition();
+        recognitionClientWithIntent.endMicAndRecognition();
 
         String msg = "Final response:" + recognitionResult.toString();
         for (RecognizedPhrase el: recognitionResult.Results) {
@@ -39,7 +39,6 @@ class AzureSpeechRecognition implements ISpeechRecognitionServerEvents {
 
         Log.d(TAG, msg);
         mHandler.sendMessage(mHandler.obtainMessage(MessageHandler.INFO, MessageHandler.APPEND, 0, msg));
-
     }
 
     @Override
@@ -79,6 +78,8 @@ class AzureSpeechRecognition implements ISpeechRecognitionServerEvents {
         String luisSubscriptionID = activity.getString(R.string.luisSubscriptionID);
 
         recognitionClientWithIntent = SpeechRecognitionServiceFactory.createMicrophoneClientWithIntent(activity, language, this, subscriptionKey, luisAppID, luisSubscriptionID);
+        recognitionClientWithIntent.setAuthenticationUri(activity.getString(R.string.authenticationUri));
+
         return recognitionClientWithIntent;
     }
 

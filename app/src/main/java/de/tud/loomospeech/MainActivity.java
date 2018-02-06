@@ -5,36 +5,25 @@ import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.MotionEvent;
-import android.view.inputmethod.InputMethodManager;
-import android.widget.TextView;
+import android.view.View;
+import android.widget.Button;
 
-import com.microsoft.cognitiveservices.speechrecognition.MicrophoneRecognitionClientWithIntent;
-import com.microsoft.cognitiveservices.speechrecognition.SpeechRecognitionServiceFactory;
 import com.segway.robot.sdk.base.bind.ServiceBinder;
-import com.segway.robot.sdk.voice.Languages;
 import com.segway.robot.sdk.voice.Recognizer;
 import com.segway.robot.sdk.voice.Speaker;
 import com.segway.robot.sdk.voice.VoiceException;
 import com.segway.robot.sdk.voice.audiodata.RawDataListener;
-import com.segway.robot.sdk.voice.grammar.GrammarConstraint;
-import com.segway.robot.sdk.voice.grammar.Slot;
 import com.segway.robot.sdk.voice.recognition.WakeupListener;
 import com.segway.robot.sdk.voice.recognition.WakeupResult;
-import com.segway.robot.sdk.voice.tts.TtsListener;
-
-import com.microsoft.cognitiveservices.speechrecognition.ISpeechRecognitionServerEvents;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
@@ -47,6 +36,8 @@ public class MainActivity extends AppCompatActivity {
     private AzureSpeechRecognition mSpeechRecognitionClient;
 
     MessageHandler mHandler;
+    private Button btnAction;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,6 +47,7 @@ public class MainActivity extends AppCompatActivity {
         if (actionBar != null) {
             actionBar.setDisplayHomeAsUpEnabled(true);
         }
+        btnAction = (Button) findViewById(R.id.btn_action);
         switchLanguage(Locale.getDefault());
         mHandler = new MessageHandler(this);
         mSpeechRecognitionClient = new AzureSpeechRecognition(this);
@@ -64,16 +56,16 @@ public class MainActivity extends AppCompatActivity {
         initRecognizer();
 //        initSpeaker();
 
+        initBtnAction();
+
     }
 
     @Override
     protected void onDestroy() {
-        if (mRecognizer != null) {
-            mRecognizer = null;
-        }
-        if (mSpeaker != null) {
-            mSpeaker = null;
-        }
+        if (mRecognizer != null) mRecognizer = null;
+        if (mSpeaker != null) mSpeaker = null;
+        if (mSpeechRecognitionClient != null) mSpeechRecognitionClient = null;
+        if (mHandler != null) mHandler = null;
         super.onDestroy();
     }
 
@@ -224,6 +216,9 @@ public class MainActivity extends AppCompatActivity {
 
                 //start azure recognition
                 mSpeechRecognitionClient.getRecognitionClientWithIntent().startMicAndRecognition();
+
+                // disable action button
+                btnAction.setEnabled(false);
             }
 
             @Override
@@ -233,6 +228,17 @@ public class MainActivity extends AppCompatActivity {
                 mHandler.sendMessage(mHandler.obtainMessage(MessageHandler.INFO, MessageHandler.APPEND, 0, getString(R.string.wakeup_error) + s));
             }
         };
+    }
+
+    protected void initBtnAction() {
+        btnAction.setEnabled(true);
+        btnAction.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                btnAction.setEnabled(false);
+                mSpeechRecognitionClient.getRecognitionClientWithIntent().startMicAndRecognition();
+            }
+        });
     }
 
 //    protected void initRawData() {
@@ -268,10 +274,6 @@ public class MainActivity extends AppCompatActivity {
 //            }
 //        };
 //    }
-
-    /* ----------------------------- Azure functions -------------------------------------- */
-
-
 
 
     /* ----------------------------- Helper functions -------------------------------------- */
