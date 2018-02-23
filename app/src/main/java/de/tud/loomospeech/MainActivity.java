@@ -6,12 +6,14 @@ import android.content.res.Resources;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
+import android.text.method.ScrollingMovementMethod;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
+import android.widget.TextView;
 
 import com.segway.robot.sdk.base.bind.ServiceBinder;
 import com.segway.robot.sdk.voice.Recognizer;
@@ -48,6 +50,8 @@ public class MainActivity extends AppCompatActivity {
             actionBar.setDisplayHomeAsUpEnabled(true);
         }
         btnAction = (Button) findViewById(R.id.btn_action);
+        TextView mOutputTextView = (TextView) findViewById(R.id.output);
+        mOutputTextView.setMovementMethod(new ScrollingMovementMethod());
         switchLanguage(Locale.getDefault());
         mHandler = new MessageHandler(this);
         mSpeechRecognitionClient = new AzureSpeechRecognition(this);
@@ -148,11 +152,7 @@ public class MainActivity extends AppCompatActivity {
 //                    Log.e(TAG, "Exception: ", e);
 //                }
 
-                try {
-                    mRecognizer.startWakeupMode(mWakeupListener);
-                } catch (VoiceException e) {
-                    Log.e(TAG, "Exception: ", e);
-                }
+                startWakeUpListener();
             }
 
             @Override
@@ -218,7 +218,7 @@ public class MainActivity extends AppCompatActivity {
                 mSpeechRecognitionClient.getRecognitionClientWithIntent().startMicAndRecognition();
 
                 // disable action button
-                btnAction.setEnabled(false);
+//                btnAction.setEnabled(false);
             }
 
             @Override
@@ -231,11 +231,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     protected void initBtnAction() {
-        btnAction.setEnabled(true);
+//        btnAction.setEnabled(true);
         btnAction.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                btnAction.setEnabled(false);
+//                btnAction.setEnabled(false);
                 mSpeechRecognitionClient.getRecognitionClientWithIntent().startMicAndRecognition();
             }
         });
@@ -300,7 +300,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void switchLanguage(Locale locale) {
+    void switchLanguage(Locale locale) {
         Configuration config = getResources().getConfiguration();
         Resources resources = getResources();
         DisplayMetrics dm = resources.getDisplayMetrics();
@@ -308,4 +308,15 @@ public class MainActivity extends AppCompatActivity {
         resources.updateConfiguration(config, dm);
     }
 
+    void startWakeUpListener() {
+        if (mRecognizer == null) {
+            return;
+        }
+
+        try {
+            mRecognizer.startWakeupMode(mWakeupListener);
+        } catch (VoiceException e) {
+            Log.e(TAG, "Exception: ", e);
+        }
+    }
 }

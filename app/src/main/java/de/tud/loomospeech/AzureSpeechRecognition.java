@@ -18,7 +18,7 @@ class AzureSpeechRecognition implements ISpeechRecognitionServerEvents {
 
     AzureSpeechRecognition(MainActivity myActivity) {
         activity = myActivity;
-        this.mHandler = myActivity.mHandler;
+        mHandler = myActivity.mHandler;
     }
 
     @Override
@@ -43,9 +43,13 @@ class AzureSpeechRecognition implements ISpeechRecognitionServerEvents {
 
     @Override
     public void onIntentReceived(String s) {
-        String msg = "Intent:" + s;
-        Log.d(TAG, msg);
+        String msg = "Intent:\n" + s;
+//        Log.d(TAG, msg);
+        Log.d(TAG, "Intent received!!!");
         mHandler.sendMessage(mHandler.obtainMessage(MessageHandler.INFO, MessageHandler.APPEND, 0, msg));
+
+        recognitionClientWithIntent.endMicAndRecognition();
+        activity.startWakeUpListener();
     }
 
     @Override
@@ -53,6 +57,8 @@ class AzureSpeechRecognition implements ISpeechRecognitionServerEvents {
         String msg = "Error:" + i + " - " + s;
         Log.d(TAG, msg);
         mHandler.sendMessage(mHandler.obtainMessage(MessageHandler.INFO, MessageHandler.APPEND, 0, msg));
+
+        activity.startWakeUpListener();
     }
 
     @Override
@@ -62,7 +68,8 @@ class AzureSpeechRecognition implements ISpeechRecognitionServerEvents {
         mHandler.sendMessage(mHandler.obtainMessage(MessageHandler.INFO, MessageHandler.APPEND, 0, msg));
 
         if (!isRecording) {
-            this.recognitionClientWithIntent.endMicAndRecognition();
+            recognitionClientWithIntent.endMicAndRecognition();
+            activity.startWakeUpListener();
 //            this._startButton.setEnabled(true);
         }
     }

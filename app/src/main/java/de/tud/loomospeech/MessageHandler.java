@@ -28,14 +28,26 @@ public class MessageHandler extends Handler {
     public void handleMessage(Message msg) {
         super.handleMessage(msg);
 
-        // TODO: move to method getTextView and build checks
-        TextView textView = (TextView) activityWeakReference.get().findViewById(R.id.output);
+        TextView textView;
+        if ((textView = getTextView(R.id.output)) == null) {
+            return;
+        }
 
         if (msg.arg1 == APPEND) {
-            textView.append(msg.obj.toString());
+            textView.append("\n" + msg.obj.toString());
         }
         else {
             textView.setText(msg.obj.toString());
         }
+    }
+
+    private TextView getTextView(int myId) {
+        TextView myTextView = null;
+        Activity myActivity = activityWeakReference.get();
+
+        if (myActivity != null)
+            myTextView = (TextView) myActivity.findViewById(myId);
+
+        return myTextView;
     }
 }
