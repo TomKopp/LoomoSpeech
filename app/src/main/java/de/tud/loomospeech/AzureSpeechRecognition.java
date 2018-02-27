@@ -6,8 +6,11 @@ import android.util.Log;
 import com.microsoft.cognitiveservices.speechrecognition.ISpeechRecognitionServerEvents;
 import com.microsoft.cognitiveservices.speechrecognition.MicrophoneRecognitionClientWithIntent;
 import com.microsoft.cognitiveservices.speechrecognition.RecognitionResult;
+import com.microsoft.cognitiveservices.speechrecognition.RecognitionStatus;
 import com.microsoft.cognitiveservices.speechrecognition.RecognizedPhrase;
 import com.microsoft.cognitiveservices.speechrecognition.SpeechRecognitionServiceFactory;
+
+import org.json.JSONObject;
 
 
 class AzureSpeechRecognition implements ISpeechRecognitionServerEvents {
@@ -35,17 +38,29 @@ class AzureSpeechRecognition implements ISpeechRecognitionServerEvents {
 
         String msg = "Final response: " + recognitionResult.RecognitionStatus;
         for (RecognizedPhrase el: recognitionResult.Results) {
-            msg = msg.concat("\nConfidence: " + el.Confidence + " Text: \"" + el.DisplayText + "\"");
+            msg += "\nConfidence: " + el.Confidence + " Text: \"" + el.DisplayText + "\"";
         }
 
         Log.d(TAG, msg);
         mHandler.sendMessage(mHandler.obtainMessage(MessageHandler.INFO, MessageHandler.APPEND, 0, msg));
+
+        if (recognitionResult.RecognitionStatus != RecognitionStatus.RecognitionSuccess) {
+            activity.startWakeUpListener();
+        }
     }
 
     @Override
     public void onIntentReceived(String s) {
-        String msg = "Intent:\n" + s;
-//        Log.d(TAG, msg);
+        String msg = "Intent:\n";
+
+        JSONObject lol = null;
+        try {
+            lol = new JSONObject(s);
+            msg += lol.get("query") + "\n" + lol.getJSONArray("intents").getJSONObject(0);
+        } catch (Exception e) {
+            Log.d(TAG, "Exception onIntentReceived: ", e);
+        }
+
         Log.d(TAG, "Intent received!!!");
         mHandler.sendMessage(mHandler.obtainMessage(MessageHandler.INFO, MessageHandler.APPEND, 0, msg));
 
@@ -71,7 +86,7 @@ class AzureSpeechRecognition implements ISpeechRecognitionServerEvents {
 
         if (!isRecording) {
             recognitionClientWithIntent.endMicAndRecognition();
-            activity.startWakeUpListener();
+//            activity.startWakeUpListener();
 //            this._startButton.setEnabled(true);
         }
     }
