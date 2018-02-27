@@ -1,8 +1,11 @@
 package de.tud.loomospeech;
 
 import android.app.ActionBar;
+import android.content.Context;
 import android.content.res.Configuration;
 import android.content.res.Resources;
+import android.media.AudioManager;
+import android.media.ToneGenerator;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
@@ -35,10 +38,11 @@ public class MainActivity extends AppCompatActivity {
     private Speaker mSpeaker;
     private WakeupListener mWakeupListener;
     private RawDataListener mRawDataListener;
-    private AzureSpeechRecognition mSpeechRecognitionClient;
-
-    MessageHandler mHandler;
+    private AzureSpeechRecognition azureSpeechRecognition;
     private Button btnAction;
+
+    ToneGenerator toneGenerator;
+    MessageHandler mHandler;
 
 
     @Override
@@ -54,8 +58,10 @@ public class MainActivity extends AppCompatActivity {
         mOutputTextView.setMovementMethod(new ScrollingMovementMethod());
         switchLanguage(Locale.getDefault());
         mHandler = new MessageHandler(this);
-        mSpeechRecognitionClient = new AzureSpeechRecognition(this);
+        azureSpeechRecognition = new AzureSpeechRecognition(this);
 
+
+        initAudio();
         initWakeUp();
         initRecognizer();
 //        initSpeaker();
@@ -68,7 +74,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         if (mRecognizer != null) mRecognizer = null;
         if (mSpeaker != null) mSpeaker = null;
-        if (mSpeechRecognitionClient != null) mSpeechRecognitionClient = null;
+        if (azureSpeechRecognition != null) azureSpeechRecognition = null;
         if (mHandler != null) mHandler = null;
         super.onDestroy();
     }
@@ -90,6 +96,18 @@ public class MainActivity extends AppCompatActivity {
 //            return mInputMethodManager.hideSoftInputFromWindow(this.getCurrentFocus().getWindowToken(), 0);
 //        }
         return super.onTouchEvent(event);
+    }
+
+    protected void initAudio() {
+        int volume = 5;
+
+        AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        try { volume = audioManager.getStreamVolume(AudioManager.STREAM_RING); } catch (Exception e) {
+            Log.d(TAG, "Exeption: Could not read system notification volume. Using 50%.", e);
+            mHandler.sendMessage(mHandler.obtainMessage(MessageHandler.INFO, MessageHandler.APPEND, 0, "Could not read system notification volume. Using 50%."));
+        }
+        volume = (volume * 10) % 100;
+        toneGenerator = new ToneGenerator(AudioManager.STREAM_RING, volume);
     }
 
     protected void initRecognizer() {
@@ -215,7 +233,7 @@ public class MainActivity extends AppCompatActivity {
                 mHandler.sendMessage(mHandler.obtainMessage(MessageHandler.INFO, MessageHandler.APPEND, 0, getString(R.string.wakeup_result) + wakeupResult.getResult() + getString(R.string.wakeup_angle) + wakeupResult.getAngle()));
 
                 //start azure recognition
-                mSpeechRecognitionClient.getRecognitionClientWithIntent().startMicAndRecognition();
+                azureSpeechRecognition.getRecognitionClientWithIntent().startMicAndRecognition();
 
                 // disable action button
 //                btnAction.setEnabled(false);
@@ -236,7 +254,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
 //                btnAction.setEnabled(false);
-                mSpeechRecognitionClient.getRecognitionClientWithIntent().startMicAndRecognition();
+                azureSpeechRecognition.getRecognitionClientWithIntent().startMicAndRecognition();
             }
         });
     }

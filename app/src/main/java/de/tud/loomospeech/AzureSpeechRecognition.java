@@ -1,5 +1,6 @@
 package de.tud.loomospeech;
 
+import android.media.ToneGenerator;
 import android.util.Log;
 
 import com.microsoft.cognitiveservices.speechrecognition.ISpeechRecognitionServerEvents;
@@ -23,7 +24,7 @@ class AzureSpeechRecognition implements ISpeechRecognitionServerEvents {
 
     @Override
     public void onPartialResponseReceived(String s) {
-        String msg = "Partial response:" + s;
+        String msg = "Partial response: " + s;
         Log.d(TAG, msg);
         mHandler.sendMessage(mHandler.obtainMessage(MessageHandler.INFO, MessageHandler.APPEND, 0, msg));
     }
@@ -32,7 +33,7 @@ class AzureSpeechRecognition implements ISpeechRecognitionServerEvents {
     public void onFinalResponseReceived(final RecognitionResult recognitionResult) {
         recognitionClientWithIntent.endMicAndRecognition();
 
-        String msg = "Final response:" + recognitionResult.toString();
+        String msg = "Final response: " + recognitionResult.RecognitionStatus;
         for (RecognizedPhrase el: recognitionResult.Results) {
             msg = msg.concat("\nConfidence: " + el.Confidence + " Text: \"" + el.DisplayText + "\"");
         }
@@ -48,7 +49,7 @@ class AzureSpeechRecognition implements ISpeechRecognitionServerEvents {
         Log.d(TAG, "Intent received!!!");
         mHandler.sendMessage(mHandler.obtainMessage(MessageHandler.INFO, MessageHandler.APPEND, 0, msg));
 
-        recognitionClientWithIntent.endMicAndRecognition();
+//        recognitionClientWithIntent.endMicAndRecognition();
         activity.startWakeUpListener();
     }
 
@@ -66,6 +67,7 @@ class AzureSpeechRecognition implements ISpeechRecognitionServerEvents {
         String msg = "Microphone status: " + isRecording;
         if (isRecording) { msg += "\nPlease start speaking..."; }
         mHandler.sendMessage(mHandler.obtainMessage(MessageHandler.INFO, MessageHandler.APPEND, 0, msg));
+        activity.toneGenerator.startTone(ToneGenerator.TONE_PROP_BEEP);
 
         if (!isRecording) {
             recognitionClientWithIntent.endMicAndRecognition();
